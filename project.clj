@@ -1,12 +1,12 @@
-(defproject cljcc "0.1.0-SNAPSHOT"
+(defproject cljcc "0.1.0"
 	:description "A parser generator for Clojure"
-	:url "http://cljcc.com/"
+	:url "https://cljcc.com/"
 	:dependencies [
-		[org.clojure/clojure "1.4.0"]
-	 	[dk.brics.automaton/automaton "1.11-8"]
-	 	[potemkin "0.3.4"]
-	 	[rhizome "0.2.0"]]
+		[org.clojure/clojure "1.7.0"]
+		[dk.brics.automaton/automaton "1.11.2"]
+		[potemkin "0.4.1"]
+		[slingshot "0.12.2"]]
 	:profiles {
 		:dev {
-			:dependencies [[midje "1.5.1"]]
-			:plugins [[lein-midje "2.0.4"]]}})
+			:dependencies [[midje "1.8.2"]]
+			:plugins [[lein-midje "3.2"]]}})

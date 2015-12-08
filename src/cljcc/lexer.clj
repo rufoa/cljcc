@@ -1,8 +1,9 @@
 (ns cljcc.lexer
 	(:require
-		[clojure.string :as s])
+		[clojure.string :as s]
+		[slingshot.slingshot :refer [throw+]])
 	(:import
-		(dk.brics.automaton RegExp Automaton RunAutomaton)))
+		(dk.brics.automaton RegExp Automaton RunAutomaton State)))
 
 
 (defrecord Position [line char]
@@ -23,7 +24,7 @@
 
 (defn- ^:testable Pattern->RegExp
 	"Convert java.util.regex.Pattern to dk.brics.automaton.RegExp so we can manipulate it as a DFA"
-	[re]
+	^dk.brics.automaton.RegExp [re]
 	(let [classes {"d" "\u0030-\u0039"
 		            "D" "\u0000-\u0029\u0040-\uffff"
 		            "s" "\u0009-\u000d\u0020"
@@ -35,8 +36,8 @@
 			(s/replace #"(?<!\\)(\\\\)*\(\?<\w+>" "$1(") ; turn named groups into normal groups
 			(s/replace #"(?<!\\)(\\\\)*\(\?:" "$1(") ; turn non-capturing groups to normal groups
 			(s/replace #"(?<!\\)(\\\\)*([\*\+])(?:[\?\+])" "$1$2") ; reluctant and possessive quantifiers
-			(s/replace #"(\[(?:[^\\\]]|\\[^\]sSwWdD]|\\\])*)\\([sSwWdD])" #(str "$1" (get classes (nth % 2)))) ; standard predefined character classes inside []
-			(s/replace #"(?<!\\)(\\\\)*\\([dDsSwW])" #(str "$1[" (get classes (nth % 2)) "]")) ; standard predefined character classes outside []
+			(s/replace #"(\[(?:[^\\\]]|\\[^\]sSwWdD]|\\\])*)\\([sSwWdD])" #(str (nth % 1) (get classes (nth % 2)))) ; standard predefined character classes inside []
+			(s/replace #"(?<!\\)(\\\\)*\\([dDsSwW])" #(str (nth % 1) "[" (get classes (nth % 2)) "]")) ; standard predefined character classes outside []
 			(s/replace #"(?<!\\)(\\\\)*\u0034" "$1\\\u0034") ; double quotes need to be escaped
 			(RegExp.))))
 
@@ -58,10 +59,10 @@
 			(= string (subs pattern 0 (count string))))))
 
 ; you can't memoize with defmethod
-(.addMethod prefix-matcher java.util.regex.Pattern
+(.addMethod ^clojure.lang.MultiFn prefix-matcher java.util.regex.Pattern
 	(memoize (fn [{:keys [pattern]}]
 		(let [automaton (.toAutomaton (Pattern->RegExp pattern))]
-			(doseq [state (.getStates automaton)]
+			(doseq [^State state (.getStates automaton)]
 				(.setAccept state true))
 			(.restoreInvariant automaton)
 			(.setDeterministic automaton true)
@@ -97,7 +98,7 @@
 	"Given a list of tokens in our grammar, return a lazy lexing function:[string]->[token]"
 	[tokens]
 	(if (some #(= (:name %) :$) tokens)
-		(throw (Exception. "Token name :$ is reserved for internal use"))
+		(throw+ {:type ::reserved-symbol :message "Token name :$ is reserved for internal use"})
 		(letfn
 			[(lazy-lex
 				[buffer input position]
@@ -109,7 +110,7 @@
 								(map #((matcher %) buffer) ,,,)
 								(filter #(and (not (nil? %)) (not-empty (:consumed %))) ,,,))] ; must match and must also consume input
 							(if (empty? cands)
-								(throw (Exception. (str "Unexpected input or possible premature end of input at " position)))
+								(throw+ {:type ::unexpected-input :message (str "Unexpected input or possible premature end of input at " position)})
 								(let [best-match
 									(last (sort-by
 										(fn [{:keys [consumed token]}] [(count consumed) (:priority token 0)]) ; scoring fn: longest match, then :priority
