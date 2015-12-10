@@ -42,21 +42,25 @@
 			(RegExp.))))
 
 (defmethod matcher java.lang.String
-	[{:keys [pattern] :as token}]
+	[{:keys [pattern ci] :as token}]
 	(fn [string]
-		(when
-			(and
-				(>= (count string) (count pattern))
-				(= (subs string 0 (count pattern)) pattern))
-			{:consumed pattern
-			 :token token})))
+		(let [string'  (if ci (s/lower-case string)  string)
+		      pattern' (if ci (s/lower-case pattern) pattern)]
+			(when
+				(and
+					(>= (count string') (count pattern'))
+					(= (subs string' 0 (count pattern')) pattern'))
+				{:consumed (subs string 0 (count pattern))
+				 :token token}))))
 
 (defmethod prefix-matcher java.lang.String
-	[{:keys [pattern]}]
+	[{:keys [pattern ci]}]
 	(fn [string]
-		(and
-			(<= (count string) (count pattern))
-			(= string (subs pattern 0 (count string))))))
+		(let [string  (if ci (s/lower-case string)  string)
+		      pattern (if ci (s/lower-case pattern) pattern)]
+			(and
+				(<= (count string) (count pattern))
+				(= string (subs pattern 0 (count string)))))))
 
 ; you can't memoize with defmethod
 (.addMethod ^clojure.lang.MultiFn prefix-matcher java.util.regex.Pattern

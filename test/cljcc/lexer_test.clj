@@ -54,3 +54,24 @@
 (fact "laziness works"
 	(first result-2) => truthy
 	(last result-2) => (throws Exception "trap"))
+
+(def tokens-3
+	#{	{:name :p1
+		 :pattern "AB"}
+		{:name :p2
+		 :pattern "CD"
+		 :ci true}})
+
+(def lex-3
+	(make-lexer tokens-3))
+
+(fact "case-sensitive string pattern works"
+	(lex-3 "ab") => (throws Exception)
+	(lex-3 "aB") => (throws Exception)
+	(lex-3 "Ab") => (throws Exception)
+	(lex-3 "AB") => (fn [actual] (some #(= :p1 (:token-name %)) actual)))
+(fact "case-insensitive string pattern works"
+	(lex-3 "cd") => (fn [actual] (some #(= :p2 (:token-name %)) actual))
+	(lex-3 "cD") => (fn [actual] (some #(= :p2 (:token-name %)) actual))
+	(lex-3 "Cd") => (fn [actual] (some #(= :p2 (:token-name %)) actual))
+	(lex-3 "CD") => (fn [actual] (some #(= :p2 (:token-name %)) actual)))
