@@ -1,4 +1,4 @@
-(defproject cljcc "0.1.0"
+(defproject cljcc "0.1.2"
 	:description "A parser generator for Clojure"
 	:url "https://cljcc.com/"
 	:dependencies [
