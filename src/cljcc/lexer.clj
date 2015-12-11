@@ -25,41 +25,47 @@
 (defn- ^:testable Pattern->RegExp
 	"Convert java.util.regex.Pattern to dk.brics.automaton.RegExp so we can manipulate it as a DFA"
 	^dk.brics.automaton.RegExp [re]
-	(let [classes {"d" "\u0030-\u0039"
-		            "D" "\u0000-\u0029\u0040-\uffff"
-		            "s" "\u0009-\u000d\u0020"
-		            "S" "\u0000-\u0008\u000e-\u0019\u0021-\uffff"
-		            "w" "\u0030-\u0039\u0041-\u005a\u005f\u0061-\u007a"
-		            "W" "\u0000-\u002f\u003a-\u0040\u005b-\u005e\u0060\u007b-\uffff"}]
+	(let [classes {"b" "\u0008"
+	               "t" "\u0009"
+	               "n" "\u000a"
+	               "f" "\u000c"
+	               "r" "\u000d"
+	               "d" "\u0030-\u0039"
+	               "D" "\u0000-\u0029\u0040-\uffff"
+	               "s" "\u0009-\u000d\u0020"
+	               "S" "\u0000-\u0008\u000e-\u0019\u0021-\uffff"
+	               "w" "\u0030-\u0039\u0041-\u005a\u005f\u0061-\u007a"
+	               "W" "\u0000-\u002f\u003a-\u0040\u005b-\u005e\u0060\u007b-\uffff"}
+	      munge (fn [s] (s/replace s #"(?<!\\)((?:\\\\)*)\\([btnfrsSwWdD])" #(str (nth % 1) (get classes (nth % 2)))))]
 		(-> re
 			(str)
 			(s/replace #"(?<!\\)(\\\\)*\(\?<\w+>" "$1(") ; turn named groups into normal groups
 			(s/replace #"(?<!\\)(\\\\)*\(\?:" "$1(") ; turn non-capturing groups to normal groups
 			(s/replace #"(?<!\\)(\\\\)*([\*\+])(?:[\?\+])" "$1$2") ; reluctant and possessive quantifiers
-			(s/replace #"(\[(?:[^\\\]]|\\[^\]sSwWdD]|\\\])*)\\([sSwWdD])" #(str (nth % 1) (get classes (nth % 2)))) ; standard predefined character classes inside []
-			(s/replace #"(?<!\\)(\\\\)*\\([dDsSwW])" #(str (nth % 1) "[" (get classes (nth % 2)) "]")) ; standard predefined character classes outside []
+			(s/replace #"(?<!\\)((?:\\\\)*)\[((?:[^\\\]]|\\[^\]]|(?:\\\\)*\\])*)\]" #(str (nth % 1) "[" (munge (nth % 2)) "]")) ; standard predefined character classes inside []
+			(s/replace #"(?<!\\)(\\\\)*\\([btnfrsSwWdD])" #(str (nth % 1) "[" (get classes (nth % 2)) "]")) ; standard predefined character classes outside []
 			(s/replace #"(?<!\\)(\\\\)*\u0034" "$1\\\u0034") ; double quotes need to be escaped
 			(RegExp.))))
 
 (defmethod matcher java.lang.String
 	[{:keys [pattern ci] :as token}]
 	(fn [string]
-		(let [string'  (if ci (s/lower-case string)  string)
-		      pattern' (if ci (s/lower-case pattern) pattern)]
-			(when
-				(and
-					(>= (count string') (count pattern'))
-					(= (subs string' 0 (count pattern')) pattern'))
-				{:consumed (subs string 0 (count pattern))
-				 :token token}))))
+		(when
+			(and
+				(>= (count string) (count pattern))
+				(let [string' (if ci (s/lower-case string)  string)
+				      pattern' (if ci (s/lower-case pattern) pattern)]
+					(= (subs string' 0 (count pattern')) pattern')))
+			{:consumed (subs string 0 (count pattern))
+			 :token token})))
 
 (defmethod prefix-matcher java.lang.String
 	[{:keys [pattern ci]}]
 	(fn [string]
-		(let [string  (if ci (s/lower-case string)  string)
-		      pattern (if ci (s/lower-case pattern) pattern)]
-			(and
-				(<= (count string) (count pattern))
+		(and
+			(<= (count string) (count pattern))
+			(let [string (if ci (s/lower-case string)  string)
+			      pattern (if ci (s/lower-case pattern) pattern)]
 				(= string (subs pattern 0 (count string)))))))
 
 ; you can't memoize with defmethod

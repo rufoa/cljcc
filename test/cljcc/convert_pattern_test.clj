@@ -65,6 +65,7 @@
 	#"\w"      " "     false
 	#"\W"      " "     true
 	#"\W"      "a"     false
+	#"\d\d"    "11"    true
 	; nested character classes
 	#"[\da]"   "1"     true
 	#"[\da]"   "a"     true
@@ -76,6 +77,10 @@
 	#"[^a\d]"  "z"     true
 	#"[\\\d]"  "\\"    true
 	#"[\]\d]"  "]"     true
+	#"[\d\d]"  "1"     true
+	#"[\d\d]"  "a"     false
+	#"[^\d\d]" "1"     false
+	#"[^\d\d]" "a"     true
 	; double quotes
 	#"\""      "\""    true
 	#"[\"]"    "\""    true
