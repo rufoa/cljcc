@@ -4,9 +4,9 @@
 	:dependencies [
 		[org.clojure/clojure "1.7.0"]
 		[dk.brics.automaton/automaton "1.11.2"]
-		[potemkin "0.4.1"]
+		[potemkin "0.4.3"]
 		[slingshot "0.12.2"]]
 	:profiles {
 		:dev {
-			:dependencies [[midje "1.8.2"]]
+			:dependencies [[midje "1.8.3"]]
 			:plugins [[lein-midje "3.2"]]}})
