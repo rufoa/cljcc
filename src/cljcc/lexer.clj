@@ -114,8 +114,8 @@
 		(let [cands (filter #((prefix-matcher %) buffer) tokens)]
 			(if (and (seq cands) (seq input))
 				(recur
-					(str buffer (first input))
-					(next input))
+					(reduce str buffer (take 32 input))
+					(drop 32 input))
 				[buffer input]))))
 
 (defn ^:testable make-lexer
